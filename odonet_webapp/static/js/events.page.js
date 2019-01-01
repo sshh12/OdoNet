@@ -11,14 +11,14 @@ function onRootUpdate(updated) {
 }
 
 let eventsConfig = {
-  type: 'line',
+  type: 'scatter',
   data: {
     datasets: [{
       label: 'Event Scores',
       backgroundColor: 'rgba(54, 162, 235, 0.5)',
       borderColor: 'rgb(54, 162, 235)',
       lineTension: 0,
-      pointRadius: 1,
+      pointRadius: 3,
       fill: false,
       data: eventsData,
     }]

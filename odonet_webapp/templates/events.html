@@ -14,9 +14,19 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
       <a class="navbar-brand" href="/">OdoNet</a>
-      <form class="form-inline my-2 my-lg-0">
-        <input class="form-control mr-sm-2" type="text" placeholder="Search">
-        <button class="btn btn-secondary my-2 my-sm-0" type="submit">Search</button>
+      <button class="navbar-toggler" type="button" data-toggle="collapse">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#">{{ num_events }} Events ({{ size }} GB)</a>
+          </li>
+        </ul>
+      </div>
+      <form class="form-inline">
+        <input class="form-control" type="text" placeholder="Search">
+        <button class="btn btn-secondary" type="submit">Search</button>
       </form>
     </nav>
 
@@ -90,37 +100,37 @@
 
     let radarLast2HoursData = [
       {% for device in device_list %}
-      (0
+      average([
       {% for day, id, score, img_fn, event_name in events %}
       {% if id == device and (date_now - day).seconds <= 60 * 60 * 2 %}
-      + {{ score }}
+      {{ score }},
       {% endif %}
       {% endfor %}
-      ),
+      ]),
       {% endfor %}
     ];
 
     let radarLastDayData = [
       {% for device in device_list %}
-      (0
+      average([
       {% for day, id, score, img_fn, event_name in events %}
       {% if id == device and (date_now - day).seconds <= 60 * 60 * 24 %}
-      + {{ score }}
+      {{ score }},
       {% endif %}
       {% endfor %}
-      ),
+      ]),
       {% endfor %}
     ];
 
     let radarLastWeekData = [
       {% for device in device_list %}
-      (0
+      average([
       {% for day, id, score, img_fn, event_name in events %}
       {% if id == device and (date_now - day).seconds <= 60 * 60 * 24 * 7 %}
-      + {{ score }}
+      {{ score }},
       {% endif %}
       {% endfor %}
-      ),
+      ]),
       {% endfor %}
     ];
 

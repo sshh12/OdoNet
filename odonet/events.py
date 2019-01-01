@@ -83,13 +83,13 @@ def score(event):
     return score
 
 
-def save_event(event, node, thumb=True, gif=True):
+def save_event(event, thumb=True, gif=True):
 
-    dir = os.path.join('events', node)
+    dir = os.path.join('events', event.node)
     os.makedirs(dir, exist_ok=True)
 
     date_formatted = event.init_date.strftime(TIME_FORMAT)
-    name = '{}_{}_{}_{}'.format(date_formatted, node, int(event.score), len(event))
+    name = '{}_{}_{}_{}'.format(date_formatted, event.node, int(event.score), len(event))
     fn = os.path.join(dir, name)
 
     with open(fn + '.event.pkl', 'wb') as event_file:
@@ -138,6 +138,7 @@ def load_event(event_name):
 def load_events(limit=1000):
 
     events = []
+    events_size = 0
 
     for node in os.listdir('events'):
 
@@ -158,8 +159,11 @@ def load_events(limit=1000):
 
             base_fn = os.path.join('events', node, event_name)
 
+            events_size += os.path.getsize(base_fn + '.pkl')
+
             events.append((date, id, score, base_fn, event_name))
 
     events.sort(reverse=True)
+    events = events[:limit]
 
-    return events[:limit]
+    return events_size, events

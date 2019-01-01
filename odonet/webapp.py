@@ -42,7 +42,7 @@ def index():
 @app.route('/events')
 def get_events():
     """View all events"""
-    all_events = events.load_events()
+    events_size, all_events = events.load_events()
 
     devices = set()
 
@@ -57,7 +57,8 @@ def get_events():
 
     return render_template('events.html',
                            events=all_events, date_now=datetime.now(),
-                           device_list=devices, **app.odonet)
+                           device_list=devices, size=round(events_size / 1e9, 2),
+                           num_events=len(all_events), **app.odonet)
 
 
 @app.route('/event/<event_name>')

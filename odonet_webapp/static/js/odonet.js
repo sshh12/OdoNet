@@ -38,3 +38,16 @@ function send(subject, data) {
     }
   });
 }
+
+
+/* Calculate the average of the array */
+function average(nums) {
+  if(nums.length == 0) {
+    return 0;
+  }
+  let sum = 0;
+  for(let n of nums) {
+    sum += n;
+  }
+  return sum / nums.length;
+}

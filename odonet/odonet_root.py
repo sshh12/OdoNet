@@ -211,7 +211,7 @@ class Node:
         elif type(decoded) == events.Event:
             decoded.node = node
             logging.info('Received Event {}'.format(decoded))
-            events.save_event(decoded, node)
+            events.save_event(decoded, thumb=False, gif=False)
             self._web_update('new_event')
 
         elif type(decoded) == dict and 'current_image' in decoded:

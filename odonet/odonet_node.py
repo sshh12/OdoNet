@@ -12,6 +12,7 @@ import time
 
 from odonet import network_util, wifi_util
 from odonet import node_config, config
+from odonet import events
 from odonet import cameras
 
 
@@ -89,9 +90,12 @@ class Node:
                     if tick_result.image is not None:
                         self._send_image(idx, tick_result.image)
                     if tick_result.event is not None:
-                        event_sent = self._send_obj(tick_result.event)
+                        event = tick_result.event
+                        event.node = self.my_id
+                        event_sent = self._send_obj(event)
                         if not event_sent:
                             logging.error('Failed to send event!!')
+                            events.save_event(event)
 
                 # Make sure the device isnt ticking too fast
                 # to prevent too much traffic and high power consumption
