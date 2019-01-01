@@ -1,13 +1,14 @@
+"""
+The OdoNet Root
+"""
 from collections import defaultdict
 from datetime import datetime
-from PIL import Image
 import socketserver
 import pickle
 import logging
 import queue
 import time
 import json
-import io
 import re
 
 from odonet import network_util
@@ -19,8 +20,10 @@ from odonet import events
 class Node:
 
     def __init__(self, conf):
-
+        """Create node from config"""
         self.conf = conf
+
+        # Read network params
         self.my_ip = conf['networking']['this']['ipv4']
         self.my_port = conf['networking']['this']['port']
         self.web_ip = conf['networking']['this'].get('web_ipv4', '0.0.0.0')
@@ -30,27 +33,33 @@ class Node:
         self.packet_queue = defaultdict(queue.Queue)
         self.routes = {}
 
+        # Create TCP server
         this = self
         class TCPTransceiver(socketserver.BaseRequestHandler):
             def handle(self):
                 this._handle_tcp(self)
         self.TCPTransceiver = TCPTransceiver
 
+        # Bind handlers
         self.app = webapp.app
         self.app.handle_web_msg = self._handle_web_server
         self.node_data = self.app.odonet
 
 
     def run(self):
-
+        """Start the server"""
         with network_util.create_server(self.my_ip, self.my_port, self.TCPTransceiver) as server:
 
-            self.node_data['update']['page'] = True
+            # Once the TCP server is running, start the webserver
+            self._web_update('page')
             self.app.run(host=self.web_ip, port=self.web_port, debug=False)
 
 
     def _handle_web_server(self, name, data):
+        """Handle a cmd from the user's browser"""
 
+        ## Client CMD ##
+        
         if name == 'reset':
             self.node_data['devices'] = {}
             self.node_data['files'] = {}
@@ -132,45 +141,57 @@ class Node:
 
 
     def _handle_tcp(self, tcp):
-
+        """Handle a packet from a child"""
         address, data, decoded = network_util.read_encoded_socket(tcp.request)
 
+        # Ignore malformed packet
         if len(address) == 0:
             logging.error('Packet w/o address')
             return
 
-        origin_node_id = address[-1]
-        last_node_id = address[0]
+        origin_node_id = address[-1] # The node the packet started from
+        last_node_id = address[0] # The node the packet just came from
 
-        logging.info('Packet from {} ({})'.format(address, str(decoded)[:100]))
+        logging.info('Packet from {} ({})'.format(address, type(decoded)))
 
+        # See if child node has data for it
         if last_node_id in self.packet_queue and not self.packet_queue[last_node_id].empty():
 
             tcp.request.sendall(self.packet_queue[last_node_id].get())
 
+        # Save the route the packet came through
+        self.routes[origin_node_id] = address
+
+        # Handle data sent
         self._handle_node_data(address, origin_node_id, decoded)
 
 
     def _handle_node_data(self, address, node, decoded):
+        """Handle data coming from a node"""
 
-        self.routes[node] = address
-
+        # Check if this is the first time node in seen
         if node not in self.node_data['devices']:
+
             self.node_data['devices'][node] = {
                 'name': 'New Device',
                 'id': node,
                 'wifi_quality': None,
                 'config': None
             }
-            self._send_msg(address, 'config')
+
+            # Ask for its config and signal
+            self._send_msg(node, 'config')
             self._send_msg(node, 'wifisignal')
 
+        # Update saved node data
         device = self.node_data['devices'][node]
         device['last_updated'] = datetime.now()
         device['address'] = address
         device['address_str'] = " <-> ".join(['@'] + list(address))
 
         self._web_update('last_updated', str(device['last_updated']), node)
+
+        ## NODE MSG TYPES ##
 
         if decoded == 'deleteme':
             self._delete_node(node)
@@ -197,22 +218,21 @@ class Node:
 
             cam_id, image_data = decoded['cam'], decoded['current_image']
 
-            res_id = 'current_image_{}'.format(cam_id)
+            files_path = 'current_image_{}'.format(cam_id)
 
-            if res_id in device:
-                del self.node_data['files'][device[res_id]]
+            if files_path in device:
+                del self.node_data['files'][device[files_path]]
             else:
                 self._web_update('page')
 
-            res_id = 'current_image_{}'.format(cam_id)
             fn = '{}_current_image_{}_{}.jpg'.format(node, cam_id, time.time())
             self.node_data['files'][fn] = (image_data, 'image/jpeg')
-            device[res_id] = fn
-            self._web_update(res_id, fn, node)
+            device[files_path] = fn
+            self._web_update(files_path, fn, node)
 
 
     def _web_update(self, key, value=True, node=None):
-
+        """Tell the webapp something updated"""
         if node is None:
             self.node_data['update'][key] = value
         else:
@@ -223,19 +243,24 @@ class Node:
 
 
     def _delete_node(self, node):
+        """
+        Delete node from local records.
+
+        Note: If the node is alive it will automatically reconnect.
+        """
         del self.node_data['devices'][node]
         del self.routes[node]
 
 
     def _send_msg(self, node, data):
-
+        """Send text to node"""
         route = self.routes[node]
         packet = network_util.construct_packet(route, network_util.DataType.TEXT, data)
         self.packet_queue[route[0]].put(packet)
 
 
     def _send_obj(self, node, obj):
-
+        """Send object to node"""
         route = self.routes[node]
         obj_data = pickle.dumps(obj)
         packet = network_util.construct_packet(route, network_util.DataType.PICKLE, obj_data)

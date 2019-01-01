@@ -141,6 +141,9 @@ def load_events(limit=1000):
 
     for node in os.listdir('events'):
 
+        if len(node) != 1:
+            continue
+
         dir = os.path.join('events', node)
 
         for fn in os.listdir(dir):

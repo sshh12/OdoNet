@@ -39,7 +39,7 @@
             </h4>
           </div>
 
-          {% for cam in range(3) %}
+          {% for cam in range(6) %}
           {% if devices[device]['current_image_{}'.format(cam)] %}
           <img class="card-img-top" id="current-image-{{ device }}-{{ cam }}" src="/files/{{ devices[device]['current_image_{}'.format(cam)] }}"/>
           <div class="btn-group centered" role="group">
@@ -93,8 +93,10 @@
               <div class="btn-group mr-2" role="group">
                 <button type="button" class="btn btn-warning" onclick="send('reboot', {id: '{{ device }}'})">Reboot</button>
                 <button type="button" class="btn btn-light" onclick="send('reload', {id: '{{ device }}'})">Reload</button>
+              </div>
+              <div class="btn-group mr-2" role="group">
                 <button type="button" class="btn btn-primary" onclick="onConfigClick('{{ device }}')" id="config-btn-{{ device }}">Config</button>
-                <button type="button" class="btn btn-dark" onclick="onShellClick('{{ device }}')" id="shell-btn-{{ device }}">Shell</button>
+                <button type="button" class="btn btn-light" onclick="onShellClick('{{ device }}')" id="shell-btn-{{ device }}">Shell</button>
               </div>
             </div>
 

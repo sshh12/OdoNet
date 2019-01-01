@@ -1,3 +1,6 @@
+"""
+Networking Utilities
+"""
 from contextlib import contextmanager
 import socketserver
 import threading
@@ -13,6 +16,7 @@ import io
 
 
 class DataType(Enum):
+    """Packet Types"""
     TEXT = 1
     IMAGE = 2
     JSON = 3
@@ -20,12 +24,18 @@ class DataType(Enum):
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    """A special TCP server that supports threading"""
     pass
 
 
 @contextmanager
 def create_server(hostname, port, handler):
+    """
+    Create a TCP server on a seperate thread
 
+    > with create_server('127.0.0.1', 80, handler) as server:
+    >     do_stuff()
+    """
     server = ThreadedTCPServer((hostname, port), handler)
 
     server_thread = threading.Thread(target=server.serve_forever)
@@ -41,7 +51,7 @@ def create_server(hostname, port, handler):
 
 
 def construct_packet(address, data_type, msg):
-
+    """Build a packet"""
     if type(msg) == bytes:
         data = msg
     else:
@@ -58,17 +68,19 @@ def construct_packet(address, data_type, msg):
 
 
 def read_encoded_socket(sock, reader_id='', decode_iif_mine=False):
-
+    """Read a packet from `sock`"""
     data = bytearray(sock.recv(20))
 
     if len(data) == 0:
         return '', b'', None
 
+    # [Address ? bytes]=[Size 4 bytes][DataType 2 bytes][Data ? bytes]
     content_index = data.index(b'=')
     packet_size, data_type = struct.unpack('IH', data[content_index + 1:content_index + 7])
     header_size = content_index + 6 + 1
     bytes_left = packet_size + header_size - len(data)
 
+    # Keep reading until the entire packet is read
     while bytes_left > 0:
         buff = sock.recv(bytes_left)
         data.extend(buff)
@@ -83,7 +95,9 @@ def read_encoded_socket(sock, reader_id='', decode_iif_mine=False):
 
     data_type = DataType(data_type)
 
-    if decode_iif_mine and (len(address) > 1 or reader_id != address): # not my packet
+    ## Decode Data ##
+
+    if decode_iif_mine and (len(address) > 1 or reader_id != address): # Dont read if not my packet
         decoded = None
     elif data_type == DataType.TEXT:
         decoded = str(data[header_size:], 'ascii')
@@ -102,7 +116,7 @@ def read_encoded_socket(sock, reader_id='', decode_iif_mine=False):
 
 
 def send_packet(from_node, hostname, port, data, decode_iif_mine=False, timeout=60):
-
+    """Send a packet to a server"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(timeout)
 
@@ -111,9 +125,11 @@ def send_packet(from_node, hostname, port, data, decode_iif_mine=False, timeout=
 
         sock.sendall(bytes(from_node, 'ascii') + data)
         socket_results = read_encoded_socket(sock, decode_iif_mine)
+
     except Exception as e:
         logging.error('Send packet failed: {}'.format(e))
         socket_results = None, None, None
+
     finally:
         sock.close()
 

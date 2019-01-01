@@ -1,12 +1,16 @@
+"""
+WiFi Utilities
+"""
 import subprocess
 import re
 
-def scan_networks(device):
 
+def scan_networks(device):
+    """Scan for networks using `iwlist` with `device`"""
     cmd = ['iwlist ' + device + ' scan']
 
     results = {}
-    cur_device = ''
+    cur_address = ''
 
     try:
 
@@ -15,6 +19,8 @@ def scan_networks(device):
 
             line = rline.decode('ascii')
 
+            # dirty regex which just parses key-value strings
+            # from the iwlist's output
             param_match = re.search(r'([\w\s()]+?)\s?:\s?"?(["\w:.\s()/=]+?)"?\n', line)
             params2_match = re.findall(r'\s*(\w[\w\s]+?)=([\d/]+?)\s+', line)
 
@@ -23,10 +29,10 @@ def scan_networks(device):
                 key = key.lower().strip().replace(' ', '_')
                 value = value.strip()
                 if key == 'address':
-                    cur_device = value
-                    results[cur_device] = {}
+                    cur_address = value
+                    results[cur_address] = {}
                 else:
-                    results[cur_device][key] = value
+                    results[cur_address][key] = value
 
             if len(params2_match) > 1:
                 for match in params2_match:
@@ -36,9 +42,9 @@ def scan_networks(device):
                     if key in ['signal_level', 'quality']:
                         x, y = value.split('/')
                         value = int(x) / int(y)
-                    results[cur_device][key] = value
+                    results[cur_address][key] = value
 
     except:
-        print('Unable to read iwlist')
+        pass # not that important...
 
     return results

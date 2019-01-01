@@ -1,3 +1,8 @@
+"""
+Configure the node itself.
+
+Write system config files, etc...
+"""
 import subprocess
 import logging
 import time
@@ -104,34 +109,44 @@ wpa_passphrase={}
 
 
 def configure(conf):
+    """Configure the device to work with the given config"""
 
-    if conf['about']['type'] != 'pi':
-        logging.warning('No configuration will be installed.')
-        return
+    # Only have code for editing raspberry pi
+    if conf['about']['type'] == 'pi':
 
-    logging.info('Configuring Pi...')
+        logging.info('Configuring Pi...')
 
-    if _configure_wifi(conf) or _configure_ap(conf):
-        logging.warning('Reboot required...')
-        reboot()
+        if _configure_rasbian_wifi(conf) or _configure_rasbian_ap(conf):
+            logging.warning('Reboot required...')
+            time.sleep(1)
+            reboot()
 
-    time.sleep(6)
+    else:
+        logging.warning('No configuration will be installed since this is not a Pi.')
+
+    # wait a little before starting OdoNet server
+    time.sleep(8)
 
 
 def _read(fn):
+    """Get contents of file"""
     with open(fn, 'r') as f:
         return f.read()
 
+
 def _write(fn, text):
+    """Write text to file"""
     with open(fn, 'w') as f:
         f.write(text)
 
+
 def reboot():
+    """Reboot system"""
     subprocess.Popen(['reboot'], shell=True)
 
 
-def _configure_wifi(conf):
-
+def _configure_rasbian_wifi(conf):
+    """Write WiFi config"""
     ssid = conf['networking']['parent']['ssid']
     passw = conf['networking']['parent']['wpa_pass']
 
@@ -142,17 +157,19 @@ def _configure_wifi(conf):
         logging.info('New WIFI config detected.')
         _write(WPA_FILE, new_config)
         return True
+
     return False
 
 
-def _configure_ap(conf):
-
+def _configure_rasbian_ap(conf):
+    """Write WiFi access-point config"""
     ap_device = conf['networking']['this']['ap_device']
     my_ip = conf['networking']['this']['ipv4']
     my_ssid = conf['networking']['this']['ssid']
     my_passw = conf['networking']['this']['wpa_pass']
     channel = conf['networking']['this']['channel']
 
+    # Make DHCP assign ips between .11-.30
     ip_prefix = '.'.join(my_ip.split('.')[:-1])
     ip_start = ip_prefix + '.11'
     ip_end = ip_prefix + '.30'
@@ -165,6 +182,7 @@ def _configure_ap(conf):
     old_dns_ip_config = _read(DNSMASQ_IP_FILE)
     old_hostapd_config = _read(HOSTAPD_FILE)
 
+    # Check if any configs differ
     diff = False
     diff |= new_dns_config != old_dns_config
     diff |= new_dns_ip_config != old_dns_ip_config
@@ -176,4 +194,5 @@ def _configure_ap(conf):
         _write(DNSMASQ_IP_FILE, new_dns_ip_config)
         _write(HOSTAPD_FILE, new_hostapd_config)
         return True
+
     return False

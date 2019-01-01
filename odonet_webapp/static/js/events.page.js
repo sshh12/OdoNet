@@ -1,3 +1,6 @@
+/*
+Events Page
+*/
 
 function onRootUpdate(updated) {
 

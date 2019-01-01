@@ -1,4 +1,6 @@
-
+"""
+Cameras
+"""
 from datetime import datetime
 import subprocess
 import threading
@@ -16,32 +18,45 @@ from odonet import events
 
 CUR_DIR = os.path.dirname(__file__)
 
+# Paths to the ML Models
 DNN_MODEL = (
     os.path.join(CUR_DIR, '..', 'dnn', 'MobileNetSSD.prototxt.txt'),
     os.path.join(CUR_DIR, '..', 'dnn', 'MobileNetSSD.caffemodel')
 )
 
+# Resize imgs for processing/detection.
+# Full sized imgs are still preserved.
+# **Must be 300x300 for MobileNetSSD.
 SMALL_DIM = (300, 300)
 
+## Optional Imports ##
 
 try:
     import cv2
-    import numpy as np
     mobile_net = cv2.dnn.readNetFromCaffe(*DNN_MODEL)
 except ImportError:
-    logging.warning('OpenCV/Numpy not found.')
+    logging.warning('Unable to load OpenCV and mobile_net.')
+    logging.info('$ pip install opencv-python')
+
+try:
+    import numpy as np
+except ImportError:
+    logging.warning('Numpy not found.')
+    logging.info('$ pip install numpy')
 
 try:
     from skimage.measure import compare_ssim
     from skimage.measure import compare_nrmse
 except ImportError:
     logging.warning('Skimage not found.')
+    logging.info('$ pip install scikit-image')
 
 try:
     from picamera import PiCamera
     from picamera.array import PiRGBArray
 except ImportError:
     logging.warning('PiCamera lib not found.')
+    logging.info('$ pip install picamera')
 
 try:
     from pyftpdlib.authorizers import DummyAuthorizer
@@ -49,12 +64,16 @@ try:
     from pyftpdlib.servers import FTPServer
 except ImportError:
     logging.warning('FTP lib not found.')
+    logging.info('$ pip install pyftpdlib')
 
 
 class BaseCamera:
 
     def __init__(self, cam_conf):
-
+        """
+        Create a basic camera
+        """
+        # params
         self.width = cam_conf.get('width', 1920)
         self.height = cam_conf.get('height', 1080)
         self.mode = cam_conf.get('mode', 'monitor')
@@ -62,20 +81,22 @@ class BaseCamera:
         self.use_ai = cam_conf.get('use_ai', True)
         self.motion_threshold = cam_conf.get('motion_threshold', 100)
 
+        # state vars
         self.cur_event = None
         self.cur_event_images = []
         self.time_last_sent = 0
         self.last_img = None
         self.last_img_small = None
         self.reset_prev_frame = False
-        self.avg_motion = 0
 
 
     def capture(self):
+        """Capture image as raw bytes"""
         return None
 
 
     def capture_array(self):
+        """Capture image as 3D array"""
         img_data = self.capture()
         if img_data:
             ary = np.fromstring(img_data, np.uint8)
@@ -84,15 +105,17 @@ class BaseCamera:
 
 
     def ready(self):
+        """Is camera ready to capture"""
         return True
 
 
     def move(self, dir):
+        """Move the camera"""
         logging.error('This camera does not support movement.')
 
 
     def tick(self):
-
+        """Handle a single tick/update of the camera"""
         if not self.ready():
             return None, None
 
@@ -104,7 +127,7 @@ class BaseCamera:
 
 
     def stream_tick(self):
-
+        """Stream images by just returning the current capture."""
         time_now = time.time()
 
         self.time_last_sent = time_now
@@ -114,7 +137,7 @@ class BaseCamera:
 
 
     def monitor_tick(self):
-
+        """Monitor the images"""
         time_now = time.time()
         date_now = datetime.now()
 
@@ -134,8 +157,6 @@ class BaseCamera:
             cur_img_small = cv2.resize(cur_img, SMALL_DIM)
 
             motion = compute_motion_score(self.last_img_small, cur_img_small)
-            self.avg_motion = self.avg_motion * 0.95 + motion * 0.05
-            print(self.avg_motion)
 
             if motion > self.motion_threshold:
                 if self.cur_event is None:
@@ -191,7 +212,7 @@ class RaspberryPiCamera(BaseCamera):
         return buffer.getvalue()
 
 
-class USBWebcam(BaseCamera):
+class FSWebcam(BaseCamera):
 
     def __init__(self, cam_conf):
         super().__init__(cam_conf)
@@ -255,24 +276,48 @@ class Insteon_75790(BaseCamera):
         return req.content
 
 
-class RTSPCamera(BaseCamera):
+class OpenCVCamera(BaseCamera):
 
     def __init__(self, cam_conf):
         super().__init__(cam_conf)
+        self.url = cam_conf.get('url', 0)
+        self.cap = cv2.VideoCapture(self.url)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 5);
+        self.capture()
+        logging.info('Found OpenCV VideoCapture')
+
+
+    def ready(self):
+        return self.cap.isOpened()
+
+
+    def capture_array(self):
+        ret, frame = self.cap.read()
+        if ret:
+            return frame
+        return None
+
+
+    def capture(self):
+        _, img_data = cv2.imencode('.jpg', self.capture_array())
+        return img_data.tostring()
+
+
+class RTSPCamera(OpenCVCamera):
+
+    def __init__(self, cam_conf):
         self.cam_ip = cam_conf['ip']
         self.cam_port = cam_conf.get('port', 554)
         self.cam_user = cam_conf.get('username', 'admin')
         self.cam_pass = cam_conf.get('password', 'password')
-        self.cam_url = cam_conf.get('password', 'videoMain')
-        self.url = 'rtsp://{}:{}@{}:{}/{}'.format(self.cam_user,
-                                                         self.cam_pass,
-                                                         self.cam_ip,
-                                                         self.cam_port,
-                                                         self.cam_url)
-        self.cap = cv2.VideoCapture(self.url)
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 5);
-        self.capture()
-        logging.info('Found RTSP Camera')
+        self.cam_path = cam_conf.get('password', 'videoMain')
+        url = 'rtsp://{}:{}@{}:{}/{}'.format(self.cam_user,
+                                             self.cam_pass,
+                                             self.cam_ip,
+                                             self.cam_port,
+                                             self.cam_path)
+        cam_conf['url'] = url
+        super().__init__(cam_conf)
 
 
     def ready(self):
@@ -295,7 +340,7 @@ class FTPCamera(BaseCamera):
 
     def __init__(self, cam_conf):
         super().__init__(cam_conf)
-        self.my_ip = cam_conf['my_ip']
+        self.my_ip = cam_conf['_my_ip']
         self.ftp_ip = cam_conf.get('ip', self.my_ip)
         self.ftp_port = cam_conf.get('port', 21)
         self.ftp_user = cam_conf.get('username', 'user')
@@ -344,10 +389,11 @@ class FTPCamera(BaseCamera):
             return self.img_buffer.get()
         return None
 
-
+# Aliases for the cameras
 CAMERAS = {
     'picamera': RaspberryPiCamera,
-    'usbwebcam': USBWebcam,
+    'fswebcam': FSWebcam,
+    'cvcamera': OpenCVCamera,
     'insteon-75790': Insteon_75790,
     'rtspcamera': RTSPCamera,
     'ftpcamera': FTPCamera
@@ -355,19 +401,22 @@ CAMERAS = {
 
 
 def compute_motion_score(prev_img, now_img):
-
+    """Calculate the motion between images"""
     rmse = compare_nrmse(prev_img, now_img)
     ssim = compare_ssim(prev_img, now_img, multichannel=True)
 
-    score = (rmse + (1 - ssim) * 1.5) / .45 * 100
+    # Experimentally derived equation
+    # ~100 should be a natural threshold
+    score = (rmse + (1 - ssim) * 1.5) / .35 * 100
 
-    print('MOTION {} {} {}'.format(rmse, ssim, score))
+    # TODO Remove
+    logging.info('MOTION {} {} {}'.format(rmse, ssim, score))
 
     return score
 
 
 def detect_objs(image, min_confid=0.6, objects=None, output_shape=None):
-
+    """Detect objects in the image"""
     all_classes = [
         "background", "aeroplane", "bicycle", "bird", "boat",
         "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
@@ -375,9 +424,11 @@ def detect_objs(image, min_confid=0.6, objects=None, output_shape=None):
         "sofa", "train", "tvmonitor"
     ]
 
+    # The objects that are important
     if objects is None:
         objects = ['bus', 'motorbike', 'car', 'cat', 'cow', 'person', 'horse', 'bird', 'sheep']
 
+    # The original image's shape to calc true bounding box
     if output_shape is None:
         output_shape = image.shape
 
@@ -395,6 +446,7 @@ def detect_objs(image, min_confid=0.6, objects=None, output_shape=None):
         confid = detections[0, 0, i, 2]
         class_idx = int(detections[0, 0, i, 1])
 
+        # Check that this is a valid idx (sometimes it's not...)
         if 0 > class_idx or class_idx >= len(all_classes):
             continue
 

@@ -1,3 +1,6 @@
+"""
+The OdoNet Node
+"""
 from collections import defaultdict
 import socketserver
 import subprocess
@@ -6,24 +9,22 @@ import struct
 import queue
 import pickle
 import time
-import sys
-import io
 
-from odonet import network_util
-from odonet import wifi_util
+from odonet import network_util, wifi_util
+from odonet import node_config, config
 from odonet import cameras
-from odonet import piconfig, config
 
 
 class Node:
 
     def __init__(self, conf):
-
+        """Create root node from config"""
         self.conf = conf
 
+        # Read network params
         self.my_ip = conf['networking']['this']['ipv4']
         self.my_port = conf['networking']['this']['port']
-        self.ping_freq = conf['networking']['this'].get('ping_freq', 64)
+        self.ping_freq = conf['networking']['this'].get('ping_freq', 10)
         self.timeout = conf['networking']['this'].get('timeout', 10)
         self.my_id = conf['about']['id']
         self.tick_length = conf['about'].get('tick_length', 0.8)
@@ -32,51 +33,57 @@ class Node:
 
         self.packet_queue = defaultdict(queue.Queue)
 
-        self._init_devices()
-
+        # Create TCP server
         this = self
         class TCPTransceiver(socketserver.BaseRequestHandler):
             def handle(self):
                 this._handle_tcp(self)
         self.TCPTransceiver = TCPTransceiver
 
+        # Create devices
+        self._init_devices()
+
 
     def _init_devices(self):
-
+        """Start up all the devices."""
         self.cameras = []
 
-        try:
+        for device_conf in self.conf['devices']:
 
-            for device_conf in self.conf['devices']:
+            device_type = device_conf['type']
+            device_conf['_my_ip'] = self.my_ip
 
-                device_type = device_conf['type']
-                device_conf['my_ip'] = self.my_ip
+            try:
 
                 if device_type in cameras.CAMERAS:
                     self.cameras.append(cameras.CAMERAS[device_type](device_conf))
 
-        except Exception as e:
-            logging.error('Failed to init devices: {}'.format(e))
+            except Exception as e:
+                logging.error('Failed to init device ({}): {}'.format(device_conf, e))
 
 
     def run(self):
-
+        """Start the server"""
         with network_util.create_server(self.my_ip, self.my_port, self.TCPTransceiver) as server:
 
             logging.info('Starting server...')
 
+            # Tell the server the device has started
             self._send_msg(self.my_id + '-boot')
             self._send_obj(self.conf)
 
+            # Keep track of loops
             ticks = 0
 
             while True:
 
                 start = time.time()
 
+                # Send out ping
                 if ticks % self.ping_freq == 0:
                     self._send_msg(self.my_id + '-tick', timeout=2)
 
+                # Run though all the devices
                 for idx, camera in enumerate(self.cameras):
                     image_data, event = camera.tick()
                     if image_data is not None:
@@ -86,6 +93,8 @@ class Node:
                         if not event_sent:
                             logging.error('Failed to send event!!')
 
+                # Make sure the device isnt ticking too fast
+                # to prevent too much traffic and high power consumption
                 time_left = max(0, self.tick_length - time.time() + start)
                 time.sleep(time_left)
 
@@ -93,13 +102,15 @@ class Node:
 
 
     def _handle_tcp(self, tcp):
-
+        """Handle a packet from a child"""
         address, data, decoded = network_util.read_encoded_socket(tcp.request, decode_iif_mine=True)
 
         logging.info('Routing {} -> @'.format(address))
 
+        # Nodes dont handle data, so send it up the tree until it hits the root
         self._forward_packet(data)
 
+        # See if the child node has data ready for it
         last_node_id = address[0]
 
         if last_node_id in self.packet_queue and not self.packet_queue[last_node_id].empty():
@@ -108,12 +119,15 @@ class Node:
 
 
     def _handle_root_cmd(self, decoded):
+        """Handle a cmd from root"""
+
+        ## ROOT MSG TYPES ##
 
         if decoded == 'config':
             self._send_obj(self.conf)
 
         elif decoded == 'reboot':
-            piconfig.reboot()
+            node_config.reboot()
 
         elif decoded == 'reload':
             self._init_devices()
@@ -124,6 +138,7 @@ class Node:
 
         elif type(decoded) == dict and 'networking' in decoded:
             config.set_config(decoded)
+            self.conf = config
 
         elif type(decoded) == dict and 'movecam' in decoded:
             camera = self.cameras[decoded['movecam']]
@@ -168,27 +183,27 @@ class Node:
 
 
     def _send_msg(self, data, **kwargs):
-
+        """Send text to root"""
         packet = network_util.construct_packet('', network_util.DataType.TEXT, data)
         return self._forward_packet(packet, **kwargs)
 
 
     def _send_image(self, cam_id, image_data):
-
+        """Send image to root"""
         id_data = struct.pack('H', cam_id)
         packet = network_util.construct_packet('', network_util.DataType.IMAGE, id_data + image_data)
         return self._forward_packet(packet)
 
 
     def _send_obj(self, obj):
-
+        """Send object to root"""
         obj_data = pickle.dumps(obj)
         packet = network_util.construct_packet('', network_util.DataType.PICKLE, obj_data)
         return self._forward_packet(packet)
 
 
     def _get_wifi_signal(self):
-
+        """Determine current WiFi signal quality/strength"""
         ssid = self.conf['networking']['parent']['ssid']
         wifi_device = self.conf['networking']['this']['wifi_device']
 

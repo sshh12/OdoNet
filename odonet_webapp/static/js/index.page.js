@@ -1,3 +1,6 @@
+/*
+Main Dashboard Page
+*/
 
 function onRootUpdate(updated) {
 
@@ -6,7 +9,7 @@ function onRootUpdate(updated) {
     if(key.startsWith('node_')) {
       let node = key.slice(5);
       let updatedData = updated[key];
-      for(let cam = 0; cam < 3; cam++) {
+      for(let cam = 0; cam < 6; cam++) {
         if(updatedData['current_image_' + cam]) {
           $('#current-image-' + node + '-' + cam).attr('src', '/files/' + updatedData['current_image_' + cam]);
         }
@@ -44,7 +47,7 @@ function onShellClick(device) {
   let btn = $('#shell-btn-' + device);
   let group = $('#shell-group-' + device);
   let text = $('#shell-text-' + device);
-  btn.toggleClass('btn-dark');
+  btn.toggleClass('btn-light');
   btn.toggleClass('btn-outline-success');
   if(btn.html() == 'Shell') {
     btn.html('Run Shell');
