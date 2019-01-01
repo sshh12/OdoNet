@@ -13,7 +13,7 @@ import cv2
 import os
 import io
 
-from odonet import events
+from odonet import events, devices
 
 
 CUR_DIR = os.path.dirname(__file__)
@@ -37,6 +37,7 @@ try:
 except ImportError:
     logging.warning('Unable to load OpenCV and mobile_net.')
     logging.info('$ pip install opencv-python')
+    logging.info('MobileNet @ https://github.com/chuanqi305/MobileNet-SSD/')
 
 try:
     import numpy as np
@@ -67,7 +68,7 @@ except ImportError:
     logging.info('$ pip install pyftpdlib')
 
 
-class BaseCamera:
+class BaseCamera(devices.Device):
 
     def __init__(self, cam_conf):
         """
@@ -79,7 +80,9 @@ class BaseCamera:
         self.mode = cam_conf.get('mode', 'monitor')
         self.monitor_rate = cam_conf.get('rate', 15 * 60)
         self.use_ai = cam_conf.get('use_ai', True)
-        self.motion_threshold = cam_conf.get('motion_threshold', 100)
+        self.motion = cam_conf.get('motion', 'auto')
+        self.max_event_age = cam_conf.get('max_event_age', 60)
+        self.max_event_size = cam_conf.get('max_event_size', 16)
 
         # state vars
         self.cur_event = None
@@ -88,6 +91,15 @@ class BaseCamera:
         self.last_img = None
         self.last_img_small = None
         self.reset_prev_frame = False
+
+        if self.motion != 'auto':
+            self.motion_threshold = self.motion
+
+        if self.motion == 'auto':
+            self.motion_history = []
+            self.motion_threshold = 1e9
+        else:
+            self.motion_threshold = self.motion
 
 
     def capture(self):
@@ -117,7 +129,7 @@ class BaseCamera:
     def tick(self):
         """Handle a single tick/update of the camera"""
         if not self.ready():
-            return None, None
+            return devices.TickResult()
 
         if self.mode == 'stream':
             return self.stream_tick()
@@ -133,7 +145,10 @@ class BaseCamera:
         self.time_last_sent = time_now
         image_data = self.capture()
 
-        return image_data, None
+        result = devices.TickResult()
+        result.image = image_data
+
+        return result
 
 
     def monitor_tick(self):
@@ -141,7 +156,7 @@ class BaseCamera:
         time_now = time.time()
         date_now = datetime.now()
 
-        send_image, send_event = None, None
+        result = devices.TickResult()
 
         if self.last_img is None or self.reset_prev_frame:
 
@@ -152,11 +167,23 @@ class BaseCamera:
         else:
 
             cur_img = self.capture_array()
+
             if cur_img is None:
-                return None, None
+                return result
+
             cur_img_small = cv2.resize(cur_img, SMALL_DIM)
 
             motion = compute_motion_score(self.last_img_small, cur_img_small)
+
+            if self.motion == 'auto':
+
+                if len(self.motion_history) > 50:
+                    motion_data = np.array(self.motion_history)
+                    avg = np.mean(motion_data)
+                    std = np.std(motion_data)
+                    self.motion_threshold = avg + std * 10
+                else:
+                    self.motion_history.append(motion)
 
             if motion > self.motion_threshold:
                 if self.cur_event is None:
@@ -167,26 +194,43 @@ class BaseCamera:
             self.last_img = cur_img
             self.last_img_small = cur_img_small
 
-        if self.cur_event is not None and (self.cur_event.age >= 120 or len(self.cur_event) >= 16):
+        # Check if the current event is old/should be sent to root
+        if self._expired_event(self.cur_event):
+
+            # Label stored images and use object detection
             for date, image_array, small_array, motion in self.cur_event_images:
+
                 if self.use_ai:
                     detected = detect_objs(small_array, output_shape=image_array.shape)
                 else:
                     detected = []
+
                 self.cur_event.add_image(image_array, date=date, objects=detected, motion=motion)
+
+            # Compute the event's score
             events.score(self.cur_event)
+
             logging.info('Sending Event {}'.format(self.cur_event))
-            if len(self.cur_event) > 0:
-                send_event = self.cur_event
+
+            result.event = self.cur_event
+
+            # Reset event state
             self.cur_event = None
             self.cur_event_images = []
 
+        # Check if snapshot should be updated
         if time_now - self.time_last_sent >= self.monitor_rate:
 
             self.time_last_sent = time_now
-            send_image = self.capture()
+            result.image = self.capture()
 
-        return send_image, send_event
+        return result
+
+
+    def _expired_event(self, event):
+        if event is None:
+            return False
+        return event.age > self.max_event_age or len(self.cur_event_images) > self.max_event_size
 
 
 class RaspberryPiCamera(BaseCamera):
@@ -196,6 +240,7 @@ class RaspberryPiCamera(BaseCamera):
         self.camera = PiCamera()
         self.camera.resolution = (self.width, self.height)
         self.camera.start_preview()
+
         self.capture()
         logging.info('Found PiCamera')
         time.sleep(1)
@@ -219,6 +264,7 @@ class FSWebcam(BaseCamera):
         self.temp_dir = tempfile.gettempdir()
         self.temp_img = os.path.join(self.temp_dir, 'usbcap.jpg')
         self.cmd = ['fswebcam -r {}x{} --no-banner {}'.format(self.width, self.height, self.temp_img)]
+
         self.capture()
         logging.info('Found USB Camera')
         time.sleep(1)
@@ -255,6 +301,7 @@ class Insteon_75790(BaseCamera):
         self.cam_user = cam_conf.get('username', 'admin')
         self.cam_pass = cam_conf.get('password', '')
         self.move_dist = cam_conf.get('movement', 1)
+
         self.capture()
         logging.info('Found Insteon 75790 Camera')
 
@@ -283,6 +330,7 @@ class OpenCVCamera(BaseCamera):
         self.url = cam_conf.get('url', 0)
         self.cap = cv2.VideoCapture(self.url)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 5);
+
         self.capture()
         logging.info('Found OpenCV VideoCapture')
 
@@ -389,6 +437,7 @@ class FTPCamera(BaseCamera):
             return self.img_buffer.get()
         return None
 
+
 # Aliases for the cameras
 CAMERAS = {
     'picamera': RaspberryPiCamera,
@@ -405,7 +454,7 @@ def compute_motion_score(prev_img, now_img):
     rmse = compare_nrmse(prev_img, now_img)
     ssim = compare_ssim(prev_img, now_img, multichannel=True)
 
-    # Experimentally derived equation
+    # Experimentally derived equation:
     # ~100 should be a natural threshold
     score = (rmse + (1 - ssim) * 1.5) / .35 * 100
 

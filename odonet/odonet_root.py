@@ -59,7 +59,7 @@ class Node:
         """Handle a cmd from the user's browser"""
 
         ## Client CMD ##
-        
+
         if name == 'reset':
             self.node_data['devices'] = {}
             self.node_data['files'] = {}
@@ -124,7 +124,7 @@ class Node:
         elif name == 'configure':
 
             cur_id, new_id = data['id'], data['new_id']
-            if cur_id == new_id or len(new_id) != 1 or new_id in self.routes:
+            if new_id is None or cur_id == new_id or len(new_id) != 1 or new_id in self.routes:
                 return {'alert': 'Invalid Id'}
 
             old_config = self.node_data['devices'][cur_id]['config']

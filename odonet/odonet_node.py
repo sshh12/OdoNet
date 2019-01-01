@@ -46,7 +46,7 @@ class Node:
 
     def _init_devices(self):
         """Start up all the devices."""
-        self.cameras = []
+        self.devices = []
 
         for device_conf in self.conf['devices']:
 
@@ -56,7 +56,7 @@ class Node:
             try:
 
                 if device_type in cameras.CAMERAS:
-                    self.cameras.append(cameras.CAMERAS[device_type](device_conf))
+                    self.devices.append(cameras.CAMERAS[device_type](device_conf))
 
             except Exception as e:
                 logging.error('Failed to init device ({}): {}'.format(device_conf, e))
@@ -84,12 +84,12 @@ class Node:
                     self._send_msg(self.my_id + '-tick', timeout=2)
 
                 # Run though all the devices
-                for idx, camera in enumerate(self.cameras):
-                    image_data, event = camera.tick()
-                    if image_data is not None:
-                        self._send_image(idx, image_data)
-                    if event is not None:
-                        event_sent = self._send_obj(event)
+                for idx, device in enumerate(self.devices):
+                    tick_result = device.tick()
+                    if tick_result.image is not None:
+                        self._send_image(idx, tick_result.image)
+                    if tick_result.event is not None:
+                        event_sent = self._send_obj(tick_result.event)
                         if not event_sent:
                             logging.error('Failed to send event!!')
 
@@ -138,7 +138,7 @@ class Node:
 
         elif type(decoded) == dict and 'networking' in decoded:
             config.set_config(decoded)
-            self.conf = config
+            self.conf = decoded
 
         elif type(decoded) == dict and 'movecam' in decoded:
             camera = self.cameras[decoded['movecam']]

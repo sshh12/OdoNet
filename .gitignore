@@ -109,3 +109,4 @@ MobileNetSSD.prototxt.txt
 events/*/*.jpg
 events/*/*.gif
 events/*/*.pkl
+**/snap/*

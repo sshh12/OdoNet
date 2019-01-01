@@ -70,7 +70,7 @@ def view_event(event_name=''):
 
     # Load individual frames
     for i, (date, image_data, motion, objects) in enumerate(event.images):
-        img_name = '{}_img_{}'.format(event_name, i)
+        img_name = '{}_img_{}.jpg'.format(event_name, i)
         if img_name not in app.odonet['files']:
             app.odonet['files'][img_name] = (image_data, 'image/jpeg')
 
