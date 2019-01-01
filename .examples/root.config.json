@@ -1,0 +1,19 @@
+{
+  "version": 1.0,
+  "security": {
+    "secret": "my-secret"
+  },
+  "networking": {
+    "parent": {},
+    "this": {
+      "ipv4": "192.168...Root IP",
+      "ssid": "Main SSID",
+      "wpa_pass": "Main SSID Password",
+      "port": 8200
+    }
+  },
+  "about": {
+    "name": "Root Server",
+    "id": "@"
+  }
+}

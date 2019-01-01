@@ -1,0 +1,26 @@
+{
+  "version": 1.0,
+  "networking": {
+    "parent": {
+      "ipv4": "192.168...Root IP",
+      "port": 8200,
+      "ssid": "Main SSID",
+      "wpa_pass": "Main SSID Password"
+    },
+    "this": {
+      "ipv4": "10.0.48.10",
+      "port": 8248,
+      "ssid": "ODONET_0",
+      "wpa_pass": "abcdefghi",
+      "wifi_device": "wlan0",
+      "ap_device": "wlan1",
+      "channel": 5
+    }
+  },
+  "devices": [],
+  "about": {
+    "name": "Unconfigured Node",
+    "id": "0",
+    "type": "pi"
+  }
+}
