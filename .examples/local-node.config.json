@@ -1,0 +1,26 @@
+{
+    "networking": {
+        "this": {
+            "ipv4": "My IP on SSID",
+            "ssid": "Main SSID",
+            "ap_device": "-",
+            "channel": -1,
+            "wifi_device": "-",
+            "wpa_pass": "Main SSID Password",
+            "port": 8005
+        },
+        "parent": {
+            "ipv4": "192.168...Root IP",
+            "wpa_pass": "Main SSID Password",
+            "port": 8200,
+            "ssid": "Main SSID"
+        }
+    },
+    "about": {
+        "type": "computer",
+        "id": "C",
+        "name": "Local PC Node"
+    },
+    "devices": [],
+    "version": 1
+}
