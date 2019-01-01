@@ -92,14 +92,13 @@ class BaseCamera(devices.Device):
         self.last_img_small = None
         self.reset_prev_frame = False
 
-        if self.motion != 'auto':
-            self.motion_threshold = self.motion
-
         if self.motion == 'auto':
             self.motion_history = []
             self.motion_threshold = 1e9
         else:
             self.motion_threshold = self.motion
+
+        self.motion_coef = 1
 
 
     def capture(self):
@@ -175,7 +174,8 @@ class BaseCamera(devices.Device):
 
             motion = compute_motion_score(self.last_img_small, cur_img_small)
 
-            if self.motion == 'auto':
+            #
+            if self.motion == 'auto' and self.motion_threshold == 1e9:
 
                 if len(self.motion_history) > 50:
                     motion_data = np.array(self.motion_history)
@@ -185,10 +185,15 @@ class BaseCamera(devices.Device):
                 else:
                     self.motion_history.append(motion)
 
-            if motion > self.motion_threshold:
-                if self.cur_event is None:
+            if motion > self.motion_threshold * self.motion_coef:
+
+                if self.cur_event is None: # Create new event
                     self.cur_event = events.Event()
                     self.cur_event_images.append((date_now, self.last_img, self.last_img_small, motion))
+
+                elif self.motion == 'auto': # if already event and 'auto', temp lower the detection threshold
+                     self.motion_coef = 0.75
+
                 self.cur_event_images.append((date_now, cur_img, cur_img_small, motion))
 
             self.last_img = cur_img
@@ -217,6 +222,7 @@ class BaseCamera(devices.Device):
             # Reset event state
             self.cur_event = None
             self.cur_event_images = []
+            self.motion_coef = 1
 
         # Check if snapshot should be updated
         if time_now - self.time_last_sent >= self.monitor_rate:
