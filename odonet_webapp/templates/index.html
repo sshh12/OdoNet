@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>OdoNet</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/odonet.css" rel="stylesheet">
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <a class="navbar-brand" href="#">OdoNet Root</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/events">Events</a>
+          </li>
+        </ul>
+        <a onclick="send('reset', {})" class="btn btn-danger" href="#">Reset</a>
+      </div>
+    </nav>
+    <br>
+
+
+    <div class="container">
+      <div class="card-deck mb-3 text-center">
+
+        {% for device in devices %}
+        <div class="card mb-4 shadow-sm">
+          <div class="card-header">
+            <h4 class="my-0 font-weight-normal">
+              {{ devices[device]['name'] }} ({{ devices[device]['id'] }})
+            </h4>
+          </div>
+
+          {% for cam in range(3) %}
+          {% if devices[device]['current_image_{}'.format(cam)] %}
+          <img class="card-img-top" id="current-image-{{ device }}-{{ cam }}" src="/files/{{ devices[device]['current_image_{}'.format(cam)] }}"/>
+          <div class="btn-group centered" role="group">
+            <button  onclick="send('move-cam', {id: '{{ device }}', cam: {{ cam }}, 'dir': 'up'})"
+                     type="button"
+                     class="btn btn-outline-info">⬆</button>
+            <button  onclick="send('move-cam', {id: '{{ device }}', cam: {{ cam }}, 'dir': 'down'})"
+                     type="button"
+                     class="btn btn-outline-info">⬇</button>
+            <button  onclick="send('move-cam', {id: '{{ device }}', cam: {{ cam }}, 'dir': 'left'})"
+                     type="button"
+                     class="btn btn-outline-info">⬅</button>
+            <button  onclick="send('move-cam', {id: '{{ device }}', cam: {{ cam }}, 'dir': 'right'})"
+                     type="button"
+                     class="btn btn-outline-info">➡</button>
+          </div>
+          {% endif %}
+          {% endfor %}
+
+          <div class="card-body">
+
+            <ul class="list-unstyled mt-3 mb-4">
+              <li><b>Last Packet</b> <span id="last-packet-{{ device }}">{{ devices[device]['last_updated'] }}</span></li>
+              <li>
+                <b>Route</b> <i>{{ devices[device]['address_str'] }}</i>
+                {% if devices[device]['wifi_quality'] %}
+                 | <b>Signal</b> <span class="badge badge-success">{{ devices[device]['wifi_quality'] }}</span>
+                {% endif %}
+              </li>
+            </ul>
+
+            {% if not devices[device]['config'] %}
+            <button type="button" class="btn btn-lg btn-block btn-info">Connecting...</button>
+            {% endif %}
+
+            {% if devices[device]['config'] %}
+
+            {% if device == '0' %}
+            <button onclick="send('configure', {new_id: prompt('New Id:', ''), id: '{{ device }}'})"
+                    type="button"
+                    class="btn btn-lg btn-block btn-success">
+                    Configure
+            </button>
+            {% endif %}
+
+            <div class="btn-toolbar display-full" role="toolbar">
+              <div class="btn-group mr-2" role="group">
+                <button type="button" class="btn btn-danger" onclick="onRouteClick('{{ device }}')" id="route-btn-{{ device }}">Routing</button>
+                <button type="button" class="btn btn-light" onclick="send('configure', {new_id: prompt('New Id:', ''), id: '{{ device }}'})">Set ID</button>
+              </div>
+              <div class="btn-group mr-2" role="group">
+                <button type="button" class="btn btn-warning" onclick="send('reboot', {id: '{{ device }}'})">Reboot</button>
+                <button type="button" class="btn btn-light" onclick="send('reload', {id: '{{ device }}'})">Reload</button>
+                <button type="button" class="btn btn-primary" onclick="onConfigClick('{{ device }}')" id="config-btn-{{ device }}">Config</button>
+                <button type="button" class="btn btn-dark" onclick="onShellClick('{{ device }}')" id="shell-btn-{{ device }}">Shell</button>
+              </div>
+            </div>
+
+            <div class="input-group start-hidden" id="route-group-{{ device }}">
+              <input id="route-text-{{ device }}" type="text" class="form-control edit-input" value="{{ devices[device]['address_str'] }}">
+            </div>
+
+            <div class="input-group start-hidden " id="shell-group-{{ device }}">
+              <input id="shell-text-{{ device }}" type="text" class="form-control edit-input" value="echo OdoNet">
+            </div>
+
+            <div class="input-group start-hidden" id="config-group-{{ device }}">
+              <textarea id="config-text-{{ device }}"
+                        rows="{{ devices[device]['config_str'].count('\n') + 1 }}"
+                        class="form-control edit-input">{{ devices[device]['config_str'] }}
+              </textarea>
+            </div>
+
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+
+      </div>
+
+      <footer class="pt-4 my-md-5 pt-md-5 border-top">
+        <div class="row">
+          <div class="col-12 col-md">
+            <small class="d-block mb-3 text-muted">&copy; SSHH.IO 2019</small>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery-3.3.1.slim.min.js"></script>
+    <script src="/js/odonet.js"></script>
+    <script src="/js/index.page.js"></script>
+
+  </body>
+</html>

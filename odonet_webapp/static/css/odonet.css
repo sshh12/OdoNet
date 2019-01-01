@@ -1,0 +1,28 @@
+
+.display-full {
+  display: block;
+  width: 100%;
+}
+
+.start-hidden {
+  display: none;
+}
+
+.edit-input {
+  width: 80% !important;
+  margin: auto;
+}
+
+.centered {
+  text-align: center;
+  margin: auto;
+}
+
+.main-event-img {
+  margin: auto;
+  width: 80%;
+}
+
+.event-frame {
+  width: 70%;
+}

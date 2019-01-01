@@ -1,0 +1,132 @@
+
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>OdoNet Events</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/odonet.css" rel="stylesheet">
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+      <a class="navbar-brand" href="/">OdoNet</a>
+      <form class="form-inline my-2 my-lg-0">
+        <input class="form-control mr-sm-2" type="text" placeholder="Search">
+        <button class="btn btn-secondary my-2 my-sm-0" type="submit">Search</button>
+      </form>
+    </nav>
+
+    <div class="container-fluid">
+
+      <div class="row">
+
+        <main role="main" class="col-md-12">
+
+          <br>
+
+          <div class="row">
+            <div class="col-md-6">
+          		<canvas id="events-canvas"></canvas>
+          	</div>
+            <div class="col-md-6">
+          		<canvas id="radar-canvas"></canvas>
+          	</div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-striped table-sm">
+              <thead>
+                <tr>
+                  <th><b>Device</b></th>
+                  <th>Score</th>
+                  <th>Date</th>
+                  <th>Summary</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for day, id, score, img_fn, event_name in events %}
+                <tr>
+                  <td>{{ id }}</td>
+                  <td>{{ score }}</td>
+                  <td>{{ day }}</td>
+                  <td><a href="/event/{{ event_name }}"><img src="/files/{{ event_name }}.jpg" /></a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/jquery-3.3.1.slim.min.js"></script>
+    <script src="js/Chart.bundle.min.js"></script>
+    <script src="js/odonet.js"></script>
+
+    <script>
+
+    let eventsData = [
+      {% for day, id, score, img_fn, event_name in events %}
+      {% if (date_now - day).seconds <= 60 * 60 * 24 %}
+      {
+        x: '{{ day }}',
+        y: {{ score }}
+      },
+      {% endif %}
+      {% endfor %}
+    ];
+
+    let deviceLabels = [
+      {% for device in device_list %}
+        '{{ device }}',
+      {% endfor %}
+    ];
+
+    let radarLast2HoursData = [
+      {% for device in device_list %}
+      (0
+      {% for day, id, score, img_fn, event_name in events %}
+      {% if id == device and (date_now - day).seconds <= 60 * 60 * 2 %}
+      + {{ score }}
+      {% endif %}
+      {% endfor %}
+      ),
+      {% endfor %}
+    ];
+
+    let radarLastDayData = [
+      {% for device in device_list %}
+      (0
+      {% for day, id, score, img_fn, event_name in events %}
+      {% if id == device and (date_now - day).seconds <= 60 * 60 * 24 %}
+      + {{ score }}
+      {% endif %}
+      {% endfor %}
+      ),
+      {% endfor %}
+    ];
+
+    let radarLastWeekData = [
+      {% for device in device_list %}
+      (0
+      {% for day, id, score, img_fn, event_name in events %}
+      {% if id == device and (date_now - day).seconds <= 60 * 60 * 24 * 7 %}
+      + {{ score }}
+      {% endif %}
+      {% endfor %}
+      ),
+      {% endfor %}
+    ];
+
+    </script>
+
+    <script src="js/events.page.js"></script>
+
+  </body>
+</html>
