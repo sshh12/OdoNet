@@ -139,6 +139,13 @@ class Node:
             cur_id, cam, dir = data['id'], data['cam'], data['dir']
             self._send_obj(cur_id, {'movecam': cam, 'dir': dir})
 
+        elif name == 'update':
+            node = data['id']
+            with open('odonet-update.zip', 'rb') as update_zip:
+                zip_data = update_zip.read()
+            self._send_obj(node, {'update_zip': zip_data})
+            return {'alert': 'Update Sent'}
+
 
     def _handle_tcp(self, tcp):
         """Handle a packet from a child"""

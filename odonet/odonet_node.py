@@ -9,11 +9,17 @@ import struct
 import queue
 import pickle
 import time
+import os
 
 from odonet import network_util, wifi_util
 from odonet import node_config, config
 from odonet import events
 from odonet import cameras
+
+
+CUR_DIR = os.path.dirname(__file__)
+
+UPDATE_FN = os.path.join(CUR_DIR, '..', 'odonet-update.zip')
 
 
 class Node:
@@ -147,6 +153,15 @@ class Node:
         elif type(decoded) == dict and 'movecam' in decoded:
             camera = self.cameras[decoded['movecam']]
             camera.move(decoded['dir'])
+
+        elif type(decoded) == dict and 'update_zip' in decoded:
+            zip_data = decoded['update_zip']
+            print(UPDATE_FN)
+            with open(UPDATE_FN, 'wb') as update_zip:
+                update_zip.write(zip_data)
+            subprocess.run(['unzip', '-d', os.path.dirname(UPDATE_FN), '-o', UPDATE_FN])
+            os.remove(UPDATE_FN)
+            logging.info('Updated!')
 
         elif type(decoded) == dict and 'shellcmd' in decoded:
             logging.info('> ' + decoded['shellcmd'])
