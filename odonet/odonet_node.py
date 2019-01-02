@@ -31,12 +31,16 @@ class Node:
         # Read network params
         self.my_ip = conf['networking']['this']['ipv4']
         self.my_port = conf['networking']['this']['port']
-        self.ping_freq = conf['networking']['this'].get('ping_freq', 10)
+        self.ping_freq = conf['networking']['this'].get('ping_freq', 6)
         self.timeout = conf['networking']['this'].get('timeout', 10)
         self.my_id = conf['about']['id']
         self.tick_length = conf['about'].get('tick_length', 0.8)
         self.parent_ip = conf['networking']['parent']['ipv4']
         self.parent_port = conf['networking']['parent']['port']
+
+        # Event Backup
+        max_events = conf['about'].get('events_backup_size', 500)
+        self.saved_events_left = max(0, max_events - len(events.load_events()[1]))
 
         self.packet_queue = defaultdict(queue.Queue)
 
@@ -92,15 +96,22 @@ class Node:
 
                 # Run though all the devices
                 for idx, device in enumerate(self.devices):
+
                     tick_result = device.tick()
+
                     if tick_result.image is not None:
+
                         self._send_image(idx, tick_result.image)
+
                     if tick_result.event is not None:
+
                         event = tick_result.event
                         event.node = self.my_id
                         event_sent = self._send_obj(event)
-                        if not event_sent:
-                            logging.error('Failed to send event!!')
+
+                        # Backup event
+                        if not event_sent and self.saved_events_left > 0:
+                            self.saved_events_left -= 1
                             events.save_event(event, thumb=False, gif=False)
 
                 # Make sure the device isnt ticking too fast
@@ -191,10 +202,10 @@ class Node:
             return False
 
         elif len(data) > 0:
-            if len(address) == 1:
-                logging.info('Received ({})'.format(str(decoded)[:20]))
+            if len(address) == 1: # This packet is for me
+                logging.info('Received ({})'.format(type(decoded)))
                 self._handle_root_cmd(decoded)
-            else:
+            else: # Send this packet to the next node in the address
                 logging.info('Routing {} -> {}'.format(self.my_id, address[1]))
                 self.packet_queue[address[1]].put(data[1:])
 

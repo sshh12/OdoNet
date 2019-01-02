@@ -190,6 +190,7 @@ class BaseCamera(devices.Device):
                     avg = np.mean(motion_data)
                     std = np.std(motion_data)
                     self.motion_threshold = avg + std * 10
+                    logging.info('Motion threshold set to {}'.format(self.motion_threshold))
                 else:
                     self.motion_history.append(motion)
 

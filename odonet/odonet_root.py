@@ -100,7 +100,7 @@ class Node:
             node = data['id']
             route = re.sub(r'[@\-<>\s]', '', data['route'])
 
-            if len(route) == 0 or route[-1] != node or route == self.routes[node]:
+            if len(route) == 0 or route[-1] != node or route + '11' == self.routes[node]:
                 return {'alert': 'Invalid Route'}
             for n in route:
                 if n not in self.node_data['devices']:
@@ -116,7 +116,16 @@ class Node:
             else:
                 parent_config = self.node_data['devices'][route[-2]]['config']
 
-            new_config = config.link_configs(old_config, parent_config)
+            # Add backup parents
+            backup_parents = []
+            if len(route) >= 2:
+                for i in reversed(range(0, len(route) - 2)):
+                    backup_node = route[i]
+                    backup_parents.append(self.node_data['devices'][backup_node]['config'])
+                backup_parents.append(self.conf)
+
+            # Create a new config that has the new networking configuration
+            new_config = config.link_configs(old_config, parent_config, backup_parents)
 
             if not config.is_same_config(old_config, new_config):
                 self._send_obj(node, new_config)

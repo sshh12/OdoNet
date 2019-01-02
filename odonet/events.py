@@ -18,6 +18,10 @@ TIME_FORMAT = '%Y-%m-%d-%H-%M-%S'
 
 THUMB_SIZE = (300, 170)
 
+CUR_DIR = os.path.dirname(__file__)
+
+EVENTS_PATH = os.path.join(CUR_DIR, '..', 'events')
+
 
 class Event:
 
@@ -87,7 +91,7 @@ def score(event):
 
 def save_event(event, thumb=True, gif=True):
 
-    dir = os.path.join('events', event.node)
+    dir = os.path.join(EVENTS_PATH, event.node)
     os.makedirs(dir, exist_ok=True)
 
     date_formatted = event.init_date.strftime(TIME_FORMAT)
@@ -135,7 +139,7 @@ def load_event(event_name):
 
     day, node, score, length = event_name.split('_')
 
-    base_fn = os.path.join('events', node, event_name)
+    base_fn = os.path.join(EVENTS_PATH, node, event_name)
 
     with open(base_fn + '.pkl', 'rb') as event_file:
         return base_fn, pickle.load(event_file)
@@ -146,12 +150,12 @@ def load_events(limit=1000):
     events = []
     events_size = 0
 
-    for node in os.listdir('events'):
+    for node in os.listdir(EVENTS_PATH):
 
         if len(node) != 1:
             continue
 
-        dir = os.path.join('events', node)
+        dir = os.path.join(EVENTS_PATH, node)
 
         for fn in os.listdir(dir):
 
@@ -163,7 +167,7 @@ def load_events(limit=1000):
 
             date = datetime.strptime(day, TIME_FORMAT)
 
-            base_fn = os.path.join('events', node, event_name)
+            base_fn = os.path.join(EVENTS_PATH, node, event_name)
 
             events_size += os.path.getsize(base_fn + '.pkl')
 
