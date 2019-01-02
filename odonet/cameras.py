@@ -37,6 +37,7 @@ try:
 except ImportError:
     logging.warning('Unable to load OpenCV and mobile_net.')
     logging.info('$ pip install opencv-python')
+except Exception:
     logging.info('MobileNet @ https://github.com/chuanqi305/MobileNet-SSD/')
 
 try:
@@ -80,6 +81,7 @@ class BaseCamera(devices.Device):
         self.mode = cam_conf.get('mode', 'monitor')
         self.monitor_rate = cam_conf.get('rate', 15 * 60)
         self.use_ai = cam_conf.get('use_ai', True)
+        self.check_broken = cam_conf.get('check_broken', True)
         self.motion = cam_conf.get('motion', 'auto')
         self.max_event_age = cam_conf.get('max_event_age', 60)
         self.max_event_size = cam_conf.get('max_event_size', 16)
@@ -87,7 +89,7 @@ class BaseCamera(devices.Device):
         # state vars
         self.cur_event = None
         self.cur_event_images = []
-        self.time_last_sent = 0
+        self.time_last_sent = -1e9
         self.last_img = None
         self.last_img_small = None
         self.reset_prev_frame = False
@@ -163,6 +165,9 @@ class BaseCamera(devices.Device):
             self.last_img_small = cv2.resize(self.last_img, SMALL_DIM)
             self.reset_prev_frame = False
 
+            if self.check_broken and is_broken(self.last_img_small):
+                self.last_img = None
+
         else:
 
             cur_img = self.capture_array()
@@ -172,9 +177,12 @@ class BaseCamera(devices.Device):
 
             cur_img_small = cv2.resize(cur_img, SMALL_DIM)
 
+            if self.check_broken and is_broken(cur_img_small):
+                return result
+
             motion = compute_motion_score(self.last_img_small, cur_img_small)
 
-            #
+            # Collecting data to determine 'auto' threshold
             if self.motion == 'auto' and self.motion_threshold == 1e9:
 
                 if len(self.motion_history) > 50:
@@ -185,6 +193,7 @@ class BaseCamera(devices.Device):
                 else:
                     self.motion_history.append(motion)
 
+            # Motion detected?
             if motion > self.motion_threshold * self.motion_coef:
 
                 if self.cur_event is None: # Create new event
@@ -192,7 +201,7 @@ class BaseCamera(devices.Device):
                     self.cur_event_images.append((date_now, self.last_img, self.last_img_small, motion))
 
                 elif self.motion == 'auto': # if already event and 'auto', temp lower the detection threshold
-                     self.motion_coef = 0.75
+                     self.motion_coef = 0.7
 
                 self.cur_event_images.append((date_now, cur_img, cur_img_small, motion))
 
@@ -453,6 +462,20 @@ CAMERAS = {
     'rtspcamera': RTSPCamera,
     'ftpcamera': FTPCamera
 }
+
+
+def is_broken(img):
+    """A very basic check to see if the img was corrupted"""
+    h, w = img.shape[:2]
+
+    for i in range(0, h - 3, 3):
+        row1 = np.sum(img[i, :, :])
+        row2 = np.sum(img[i + 1, :, :])
+        row3 = np.sum(img[i + 2, :, :])
+        if row1 == row2 == row3:
+            return True
+
+    return False
 
 
 def compute_motion_score(prev_img, now_img):

@@ -16,6 +16,8 @@ except ImportError:
 
 TIME_FORMAT = '%Y-%m-%d-%H-%M-%S'
 
+THUMB_SIZE = (300, 170)
+
 
 class Event:
 
@@ -74,7 +76,7 @@ def score(event):
         for object in objects:
             img_scores += 50
             if object.name == 'person':
-                img_scores += 2000
+                img_scores += 5000
 
     score += img_scores / len(event.images)
 
@@ -96,14 +98,18 @@ def save_event(event, thumb=True, gif=True):
         pickle.dump(event, event_file)
 
     if thumb and len(event.images) > 0:
-        img_data = max(event.images, key=lambda i: i[2])[1]
-        img_data = np.fromstring(img_data, np.uint8)
-        img = cv2.imdecode(img_data, cv2.IMREAD_COLOR)
-        img = cv2.resize(img, (300, 170))
-        cv2.imwrite(fn + '.event.jpg', img)
+        _create_thumb(event, fn + '.event.jpg')
 
     if gif and len(event.images) > 0:
         _create_gif(event, fn + '.event.gif')
+
+
+def _create_thumb(event, output_name):
+    img_data = max(event.images, key=lambda i: i[2])[1]
+    img_data = np.fromstring(img_data, np.uint8)
+    img = cv2.imdecode(img_data, cv2.IMREAD_COLOR)
+    img = cv2.resize(img, THUMB_SIZE)
+    cv2.imwrite(output_name, img)
 
 
 def _create_gif(event, output_name, frame_delay=60):

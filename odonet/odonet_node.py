@@ -95,7 +95,7 @@ class Node:
                         event_sent = self._send_obj(event)
                         if not event_sent:
                             logging.error('Failed to send event!!')
-                            events.save_event(event)
+                            events.save_event(event, thumb=False, gif=False)
 
                 # Make sure the device isnt ticking too fast
                 # to prevent too much traffic and high power consumption

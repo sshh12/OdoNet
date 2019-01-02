@@ -24,10 +24,10 @@
           </li>
         </ul>
       </div>
-      <form class="form-inline">
+      <!--<form class="form-inline">
         <input class="form-control" type="text" placeholder="Search">
         <button class="btn btn-secondary" type="submit">Search</button>
-      </form>
+      </form>-->
     </nav>
 
     <div class="container-fluid">
@@ -58,11 +58,11 @@
                 </tr>
               </thead>
               <tbody>
-                {% for day, id, score, img_fn, event_name in events %}
+                {% for date, id, score, img_fn, event_name in events %}
                 <tr>
                   <td>{{ id }}</td>
                   <td>{{ score }}</td>
-                  <td>{{ day }}</td>
+                  <td>{{ date }}</td>
                   <td><a href="/event/{{ event_name }}"><img src="/files/{{ event_name }}.jpg" /></a></td>
                 </tr>
                 {% endfor %}
@@ -82,10 +82,10 @@
     <script>
 
     let eventsData = [
-      {% for day, id, score, img_fn, event_name in events %}
-      {% if (date_now - day).seconds <= 60 * 60 * 24 %}
+      {% for date, id, score, img_fn, event_name in events %}
+      {% if (date_now - date).seconds <= 60 * 60 * 24 %}
       {
-        x: '{{ day }}',
+        x: '{{ date }}',
         y: {{ score }}
       },
       {% endif %}
@@ -101,8 +101,8 @@
     let radarLast2HoursData = [
       {% for device in device_list %}
       average([
-      {% for day, id, score, img_fn, event_name in events %}
-      {% if id == device and (date_now - day).seconds <= 60 * 60 * 2 %}
+      {% for date, id, score, img_fn, event_name in events %}
+      {% if id == device and (date_now - date).seconds <= 60 * 60 * 2 %}
       {{ score }},
       {% endif %}
       {% endfor %}
@@ -113,8 +113,8 @@
     let radarLastDayData = [
       {% for device in device_list %}
       average([
-      {% for day, id, score, img_fn, event_name in events %}
-      {% if id == device and (date_now - day).seconds <= 60 * 60 * 24 %}
+      {% for date, id, score, img_fn, event_name in events %}
+      {% if id == device and (date_now - date).seconds <= 60 * 60 * 24 %}
       {{ score }},
       {% endif %}
       {% endfor %}
@@ -125,8 +125,8 @@
     let radarLastWeekData = [
       {% for device in device_list %}
       average([
-      {% for day, id, score, img_fn, event_name in events %}
-      {% if id == device and (date_now - day).seconds <= 60 * 60 * 24 * 7 %}
+      {% for date, id, score, img_fn, event_name in events %}
+      {% if id == device and (date_now - date).seconds <= 60 * 60 * 24 * 7 %}
       {{ score }},
       {% endif %}
       {% endfor %}

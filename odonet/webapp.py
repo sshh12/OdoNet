@@ -47,7 +47,7 @@ def get_events():
     devices = set()
 
     # Load the event's thumbnail and basic info
-    for day, id, score, base_fn, event_name in all_events:
+    for date, id, score, base_fn, event_name in all_events:
 
         devices.add(id)
 
