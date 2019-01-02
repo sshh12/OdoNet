@@ -36,18 +36,32 @@ def create_server(hostname, port, handler):
     > with create_server('127.0.0.1', 80, handler) as server:
     >     do_stuff()
     """
-    server = ThreadedTCPServer((hostname, port), handler)
+    try:
 
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.daemon = True
-    server_thread.start()
+        server = ThreadedTCPServer((hostname, port), handler)
 
-    logging.info('TCP started on {}:{}'.format(hostname, port))
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.daemon = True
+        server_thread.start()
 
-    yield server
+        logging.info('TCP started on {}:{}'.format(hostname, port))
 
-    server.shutdown()
-    server.server_close()
+        yield server
+
+        server.shutdown()
+        server.server_close()
+
+    except OSError as e:
+
+        # This will occur if the this`-`ipv4` is set to an ip that connot be
+        # binded to, which will occur if your using the default generated config
+        # on a device that does not have 2 wifi adapters (one for connecting
+        # to the node parent and the other for children to connect to)
+
+        logging.error('Failed to init TCP server on {}:{}'.format(hostname, port))
+        logging.warning('No nodes will be able to connect to this node.')
+
+        yield None
 
 
 def construct_packet(address, data_type, msg):

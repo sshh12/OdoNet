@@ -9,9 +9,15 @@ import os
 
 try:
     import cv2
+except ImportError:
+    logging.warning('Unable to load OpenCV.')
+    logging.info('$ pip install opencv-python')
+
+try:
     import numpy as np
 except ImportError:
-    logging.warning('OpenCV/Numpy not found.')
+    logging.warning('Numpy not found.')
+    logging.info('$ pip install numpy')
 
 
 TIME_FORMAT = '%Y-%m-%d-%H-%M-%S'

@@ -242,6 +242,6 @@ class Node:
         for found_mac in scan_results:
             wifi_network = scan_results[found_mac]
             if wifi_network.get('essid', '') == ssid:
-                return (wifi_network['quality'], wifi_network['signal_level'])
+                return (wifi_network.get('quality', -1), wifi_network.get('signal_level', -1))
 
         return (-1, -1)
