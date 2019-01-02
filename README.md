@@ -21,6 +21,12 @@ A framework for a network of advanced monitoring devices.
 * Easy to use dashboard for configuring, controlling, and viewing devices
 * View events (like motion detected) as well as where they are occurring overtime and their priority
 
+#### Screenshots
+
+![dashboard](https://user-images.githubusercontent.com/6625384/50607063-f1228c80-0e95-11e9-9b46-97053c982587.png)
+
+![events page](https://user-images.githubusercontent.com/6625384/50606987-a86ad380-0e95-11e9-8ac9-d2403cca8860.png)
+
 ## How
 
 OdoNet is structured like a [tree](https://en.wikipedia.org/wiki/Tree_(data_structure)) with 2 parts:
