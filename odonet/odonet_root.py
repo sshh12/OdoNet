@@ -150,10 +150,13 @@ class Node:
 
         elif name == 'update':
             node = data['id']
-            with open('odonet-update.zip', 'rb') as update_zip:
-                zip_data = update_zip.read()
-            self._send_obj(node, {'update_zip': zip_data})
-            return {'alert': 'Update Sent'}
+            try:
+                with open('odonet-update.zip', 'rb') as update_zip:
+                    zip_data = update_zip.read()
+                self._send_obj(node, {'update_zip': zip_data})
+                return {'alert': 'Update Sent'}
+            except FileNotFoundError:
+                return {'alert': 'Could not find odonet-update.zip'}
 
 
     def _handle_tcp(self, tcp):

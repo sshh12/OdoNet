@@ -46,6 +46,7 @@ def create_node_config(original_config, node_id, secret):
     new_config['networking']['this']['ipv4'] = '10.0.{}.10'.format(ord(node_id))
     new_config['networking']['this']['port'] = 8200 + ord(node_id)
 
+    new_config['networking']['this']['channel'] = 1 + (ord(node_id) % 14)
     new_config['networking']['this']['ssid'] = 'ODONET_' + node_id
     new_config['networking']['this']['wpa_pass'] = _generate_hash(secret, node_id)[:20]
 
