@@ -1,0 +1,38 @@
+{
+  "version": 1.0,
+  "networking": {
+    "parent": {
+      "ipv4": "192.168...Root IP",
+      "port": 8200,
+      "ssid": "Main SSID",
+      "wpa_pass": "Main SSID Password"
+    },
+    "this": {
+      "ipv4": "10.0.122.10",
+      "port": 8322,
+      "ssid": "ODONET_z",
+      "wpa_pass": "af80da1289",
+      "wifi_device": "wlan0",
+      "ap_device": "wlan1",
+      "channel": 9
+    }
+  },
+  "devices": [{
+      "type": "picamera",
+      "mode": "stream",
+      "width": 300,
+      "height": 300
+  }, {
+      "type": "ftpcamera",
+      "mode": "monitor",
+      "user": "cameralogin",
+      "password": "camerapass",
+      "use_ai": true,
+      "motion": 85
+  }],
+  "about": {
+    "name": "Node z",
+    "id": "z",
+    "type": "pi"
+  }
+}

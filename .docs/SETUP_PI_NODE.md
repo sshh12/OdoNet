@@ -1,5 +1,5 @@
 # Setup: Raspberry Pi Node
-> These instructions were written using the RPi 3 B+ and Raspbian Stretch Lite (4.14 
+> These instructions were written using the RPi 3 B+ and Raspbian Stretch Lite (4.14
 November 2018)
 ### Setting up only one RPi
 
@@ -7,7 +7,7 @@ November 2018)
 **Needed only for WiFi Mesh/Chaining
 1. Download [raspbian](https://www.raspberrypi.org/downloads/raspbian/) and [install](https://www.raspberrypi.org/documentation/installation/installing-images/README.md) it
 2. Connect the RPi to [WiFi](https://www.raspberrypi.org/documentation/configuration/wireless/wireless-cli.md) and [enable SSH](https://www.raspberrypi.org/documentation/remote-access/ssh/)
-3. **Connect a [USB WiFi adapter](https://www.amazon.com/gp/product/B00YI0AIRS/ref=oh_aui_detailpage_o05_s00?ie=UTF8&psc=1) (this should be `wlan1`) 
+3. **Connect a [USB WiFi adapter](https://www.amazon.com/gp/product/B00YI0AIRS/ref=oh_aui_detailpage_o05_s00?ie=UTF8&psc=1) (this should be `wlan1`)
 4. **Install WiFi tools
 	* `sudo apt-get install dnsmasq hostapd`
 	* [More info](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md). Dont worry about the config files, these will be replaced by OdoNet.
@@ -26,6 +26,7 @@ November 2018)
 	* `pip install scipy`
 	* `pip install pyftpdlib`
 	* `pip install picamera`
+	* `sudo apt-get install fswebcam`
 3. Create a config file (examples in `/.examples`)
 	* Copy and edit the text below into `pi.config.json` and confirm that `CONFIG_FILE = '/home/pi/OdoNet/pi.config.json'` in `node_server.py`
 	* Ensure that you are only editing `"parent": {` and not `"this": {`
