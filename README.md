@@ -56,5 +56,7 @@ OdoNet can be configured like a normal WiFi security camera system where all the
 
 3. Add devices: [Device Setup](https://github.com/sshh12/OdoNet/blob/master/.docs/DEVICES.md)
 
+![Finished RPi with pi camera](https://user-images.githubusercontent.com/6625384/51418844-05cc7900-1b54-11e9-8616-3b34909e068d.jpg)
+
 ## Help
 Fill free to [create an issue](https://github.com/sshh12/OdoNet/issues).
