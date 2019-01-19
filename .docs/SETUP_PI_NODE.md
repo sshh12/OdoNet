@@ -19,7 +19,7 @@ November 2018)
 	* `cd ~` and `git clone https://github.com/sshh12/OdoNet.git`
 1. Install [Python 3](https://www.python.org/downloads/) and [pip](https://stackoverflow.com/questions/4750806/how-do-i-install-pip-on-windows)
 2. Install dependencies
-	* `pip install opencv-python`
+	* `pip install opencv-python` although [compiling it yourself](https://www.pyimagesearch.com/2018/09/26/install-opencv-4-on-your-raspberry-pi/) would be better
 		* Download ML model [MobileNetSSD](https://github.com/chuanqi305/MobileNet-SSD) and place weights and prototxt in `dnn`
 	* `pip install numpy`
 	* `pip install scikit-image`
